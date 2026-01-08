@@ -1,0 +1,2754 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torneo de Pádel</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        :root {
+            --primary: #00ff87;
+            --secondary: #0066ff;
+            --dark: #0a0e1a;
+            --dark-surface: #151b2e;
+            --dark-card: #1a2137;
+            --text: #ffffff;
+            --text-muted: #8892ab;
+            --accent: #ff00ff;
+            --win: #00ff87;
+            --loss: #ff3366;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--dark);
+            color: var(--text);
+        }
+
+        .app-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            min-height: 100%;
+            z-index: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(0, 255, 135, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(0, 102, 255, 0.15) 0%, transparent 50%),
+                var(--dark);
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--dark-surface) 0%, var(--dark-card) 100%);
+            border-bottom: 2px solid rgba(0, 255, 135, 0.2);
+            padding: 2rem 2rem 1rem;
+            position: relative;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3rem;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+
+        .nav {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-color: transparent;
+            color: var(--dark);
+        }
+
+        .admin-btn {
+            margin-left: auto;
+            border-color: var(--accent);
+        }
+
+        .admin-btn:hover {
+            background: var(--accent);
+            color: var(--dark);
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .section-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+
+        .calendar-grid {
+            display: grid;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .match-card {
+            background: var(--dark-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .match-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+
+        .match-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 30px rgba(0, 255, 135, 0.2);
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .match-date {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+
+        .match-status {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-scheduled {
+            background: rgba(0, 102, 255, 0.2);
+            color: var(--secondary);
+        }
+
+        .status-completed {
+            background: rgba(0, 255, 135, 0.2);
+            color: var(--primary);
+        }
+
+        .match-body {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .teams-vs-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .team-line {
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .team-line-split {
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .team-line-split .player-left {
+            text-align: right;
+            flex: 1;
+        }
+
+        .team-line-split .separator {
+            color: var(--text-muted);
+            font-weight: 400;
+            flex-shrink: 0;
+        }
+
+        .team-line-split .player-right {
+            text-align: left;
+            flex: 1;
+        }
+
+        .team-line.winner,
+        .team-line-split.winner {
+            color: var(--primary);
+            background: rgba(0, 255, 135, 0.08);
+        }
+
+        .vs-center {
+            text-align: center;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding: 0.2rem 0;
+        }
+        }
+
+        .sets-section {
+            flex-shrink: 0;
+        }
+
+        .sets-grid {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .set-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .set-label {
+            width: 55px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 255, 135, 0.15);
+            border: 1px solid rgba(0, 255, 135, 0.3);
+            border-radius: 6px;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .set-value {
+            width: 55px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .match-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .match-teams-inline {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .team-name {
+            flex: 1;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .team-name.winner-name {
+            color: var(--primary);
+        }
+
+        .vs-inline {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0 0.5rem;
+        }
+
+        .sets-table-compact {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .sets-header-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .set-header {
+            width: 50px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 255, 135, 0.15);
+            border: 1px solid rgba(0, 255, 135, 0.3);
+            border-radius: 6px;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .sets-scores {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .score-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .score-cell {
+            width: 50px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .match-teams {
+            display: flex;
+            flex-direction: row;
+            gap: 0;
+            align-items: center;
+        }
+
+        .match-teams-table {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .teams-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .team-row {
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .team-row.winner {
+            background: rgba(0, 255, 135, 0.1);
+            border: 1px solid rgba(0, 255, 135, 0.3);
+        }
+
+        .vs-separator {
+            text-align: center;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.25rem 0;
+        }
+
+        .sets-table {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .sets-header {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        .sets-row {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        .set-cell {
+            width: 50px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .sets-header .set-cell {
+            background: rgba(0, 255, 135, 0.15);
+            border-color: rgba(0, 255, 135, 0.3);
+            color: var(--primary);
+            font-size: 0.85rem;
+        }
+
+        .team {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .team.winner {
+            background: rgba(0, 255, 135, 0.1);
+            border: 1px solid rgba(0, 255, 135, 0.3);
+        }
+
+        .team-names {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .team-score {
+            font-size: 1.5rem;
+            font-weight: 800;
+            font-family: 'Bebas Neue', sans-serif;
+            color: var(--primary);
+            margin-left: 1rem;
+        }
+
+        .vs-divider {
+            text-align: center;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .standings-table {
+            background: var(--dark-card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .table-header {
+            display: grid;
+            grid-template-columns: 40px 2fr 70px 70px 70px 70px 70px 70px 70px 70px 90px 90px 100px 90px;
+            gap: 0.5rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(0, 255, 135, 0.1) 0%, rgba(0, 102, 255, 0.1) 100%);
+            font-weight: 800;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            color: var(--primary);
+            overflow-x: auto;
+        }
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 40px 2fr 70px 70px 70px 70px 70px 70px 70px 70px 90px 90px 100px 90px;
+            gap: 0.5rem;
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            overflow-x: auto;
+        }
+
+        .table-row:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .table-row:last-child {
+            border-bottom: none;
+        }
+
+        .rank {
+            font-weight: 800;
+            font-size: 1.2rem;
+            font-family: 'Bebas Neue', sans-serif;
+            color: var(--primary);
+        }
+
+        .team-name {
+            font-weight: 600;
+        }
+
+        .stat {
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .points {
+            font-size: 1.3rem;
+            font-weight: 800;
+            font-family: 'Bebas Neue', sans-serif;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .admin-panel {
+            background: var(--dark-card);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--dark-surface);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--dark);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 255, 135, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--loss);
+            color: var(--text);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 51, 102, 0.3);
+        }
+
+        .matches-list {
+            display: grid;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .admin-match-card {
+            background: var(--dark-surface);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .match-info {
+            flex: 1;
+        }
+
+        .match-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: var(--dark-card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 800;
+            font-family: 'Bebas Neue', sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .standings-table {
+                overflow-x: auto;
+            }
+
+            .table-header,
+            .table-row {
+                grid-template-columns: 35px 180px 50px 50px 50px 50px 55px 55px 60px 60px 75px 75px 90px 70px;
+                gap: 0.3rem;
+                padding: 1rem 0.5rem;
+                font-size: 0.7rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .logo {
+                font-size: 2rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .match-teams-inline {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: flex-start;
+            }
+
+            .vs-inline {
+                align-self: center;
+            }
+
+            .sets-table-compact {
+                flex-direction: column;
+            }
+
+            .sets-scores {
+                width: 100%;
+            }
+
+            .team-name {
+                font-size: 0.9rem;
+            }
+        }
+
+        .password-prompt {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 26, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .password-box {
+            background: var(--dark-card);
+            padding: 3rem;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 255, 135, 0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .password-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .rules-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .rules-section {
+            background: var(--dark-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .rules-section-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            letter-spacing: 1px;
+        }
+
+        .rules-list {
+            list-style: none;
+            counter-reset: rule-counter;
+        }
+
+        .rules-list li {
+            counter-increment: rule-counter;
+            margin-bottom: 1.2rem;
+            padding-left: 2.5rem;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .rules-list li::before {
+            content: counter(rule-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--dark);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.85rem;
+        }
+
+        .rules-highlight {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .rules-warning {
+            background: rgba(255, 51, 102, 0.1);
+            border-left: 4px solid var(--loss);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .rules-info {
+            background: rgba(0, 102, 255, 0.1);
+            border-left: 4px solid var(--secondary);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: var(--dark-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 24px rgba(0, 255, 135, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-family: 'Bebas Neue', sans-serif;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Función de hash SHA-256
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Hash de la contraseña (no almacenamos la contraseña real)
+        const ADMIN_HASH = "d97c0fc29ac6ac54b2e8fcc3239c8c57633edde5a77ce4819828189e6f837bcc";
+        
+        // Token de sesión
+        let sessionToken = null;
+        
+        // Generar token de sesión
+        function generateToken() {
+            return Array.from(crypto.getRandomValues(new Uint8Array(32)))
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // URLs de tu Google Sheet publicadas como CSV
+        const SHEET_ID = "1wf20b5x65J9AawSvn2JWWiodOrG-cF7Y_aAKNVB1WeU";
+        const CALENDARIO_GID = "1914105342";
+        const CLASIFICACION_GID = "392980202";
+        
+        const CALENDARIO_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${CALENDARIO_GID}`;
+        const CLASIFICACION_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${CLASIFICACION_GID}`;
+
+        const initialTeams = [
+            "Adri Vergara y Sergio Morilla",
+            "Carlos Galeano y Miguel",
+            "Carlos Rodriguez y Dani Minaya",
+            "Carlos Vergara y Sebas",
+            "Dani Aguado y Natalia",
+            "Dani Muñoz y Chechu",
+            "Irene y Ernesto",
+            "Javi y Juanan",
+            "José Mora y Sergio",
+            "Rubén y Jorge",
+            "Victor y José Carrascosa"
+        ];
+
+        function App() {
+            const [view, setView] = useState('rules');
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [selectedTeam, setSelectedTeam] = useState(null);
+            const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+            const [passwordInput, setPasswordInput] = useState('');
+            const [loading, setLoading] = useState(true);
+            const [syncMessage, setSyncMessage] = useState('');
+            
+            // Estado para partidos y clasificación
+            const [matches, setMatches] = useState(() => {
+                const saved = localStorage.getItem('padelMatches');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+                
+                // Datos iniciales de las jornadas
+                return [
+                    // Jornada 1: 12/1/2025 - 1/2/2026
+                    { id: 'j1-1', team1: 'Victor y José Carrascosa', team2: 'Adri Vergara y Sergio Morilla', date: '2026-01-12', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 1', jornadaDate: '12/1/2025 - 1/2/2026' },
+                    { id: 'j1-2', team1: 'Dani Muñoz y Chechu', team2: 'Carlos Rodriguez y Dani Minaya', date: '2026-01-12', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 1', jornadaDate: '12/1/2025 - 1/2/2026' },
+                    { id: 'j1-3', team1: 'Irene y Ernesto', team2: 'Dani Aguado y Natalia', date: '2026-01-12', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 1', jornadaDate: '12/1/2025 - 1/2/2026' },
+                    { id: 'j1-4', team1: 'Rubén y Jorge', team2: 'Carlos Galeano y Miguel', date: '2026-01-12', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 1', jornadaDate: '12/1/2025 - 1/2/2026' },
+                    { id: 'j1-5', team1: 'Javi y Juanan', team2: 'José Mora y Sergio Santurde', date: '2026-01-12', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 1', jornadaDate: '12/1/2025 - 1/2/2026' },
+                    
+                    // Jornada 2: 1/2/2026 - 22/2/2026
+                    { id: 'j2-1', team1: 'Dani Aguado y Natalia', team2: 'Carlos Rodriguez y Dani Minaya', date: '2026-02-01', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 2', jornadaDate: '1/2/2026 - 22/2/2026' },
+                    { id: 'j2-2', team1: 'Adri Vergara y Sergio Morilla', team2: 'Carlos Galeano y Miguel', date: '2026-02-01', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 2', jornadaDate: '1/2/2026 - 22/2/2026' },
+                    { id: 'j2-3', team1: 'José Mora y Sergio Santurde', team2: 'Victor y José Carrascosa', date: '2026-02-01', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 2', jornadaDate: '1/2/2026 - 22/2/2026' },
+                    { id: 'j2-4', team1: 'Carlos Vergara y Sebas', team2: 'Dani Muñoz y Chechu', date: '2026-02-01', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 2', jornadaDate: '1/2/2026 - 22/2/2026' },
+                    { id: 'j2-5', team1: 'Irene y Ernesto', team2: 'Javi y Juanan', date: '2026-02-01', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 2', jornadaDate: '1/2/2026 - 22/2/2026' },
+                    
+                    // Jornada 3: 23/2/2026 - 15/3/2026
+                    { id: 'j3-1', team1: 'Carlos Galeano y Miguel', team2: 'José Mora y Sergio Santurde', date: '2026-02-23', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 3', jornadaDate: '23/2/2026 - 15/3/2026' },
+                    { id: 'j3-2', team1: 'Dani Aguado y Natalia', team2: 'Carlos Vergara y Sebas', date: '2026-02-23', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 3', jornadaDate: '23/2/2026 - 15/3/2026' },
+                    { id: 'j3-3', team1: 'Carlos Rodriguez y Dani Minaya', team2: 'Javi y Juanan', date: '2026-02-23', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 3', jornadaDate: '23/2/2026 - 15/3/2026' },
+                    { id: 'j3-4', team1: 'Rubén y Jorge', team2: 'Adri Vergara y Sergio Morilla', date: '2026-02-23', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 3', jornadaDate: '23/2/2026 - 15/3/2026' },
+                    { id: 'j3-5', team1: 'Victor y José Carrascosa', team2: 'Irene y Ernesto', date: '2026-02-23', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 3', jornadaDate: '23/2/2026 - 15/3/2026' },
+                    
+                    // Jornada 4: 16/3/2026 - 5/4/2026
+                    { id: 'j4-1', team1: 'Carlos Vergara y Sebas', team2: 'Javi y Juanan', date: '2026-03-16', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 4', jornadaDate: '16/3/2026 - 5/4/2026' },
+                    { id: 'j4-2', team1: 'José Mora y Sergio Santurde', team2: 'Rubén y Jorge', date: '2026-03-16', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 4', jornadaDate: '16/3/2026 - 5/4/2026' },
+                    { id: 'j4-3', team1: 'Irene y Ernesto', team2: 'Carlos Galeano y Miguel', date: '2026-03-16', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 4', jornadaDate: '16/3/2026 - 5/4/2026' },
+                    { id: 'j4-4', team1: 'Dani Muñoz y Chechu', team2: 'Dani Aguado y Natalia', date: '2026-03-16', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 4', jornadaDate: '16/3/2026 - 5/4/2026' },
+                    { id: 'j4-5', team1: 'Carlos Rodriguez y Dani Minaya', team2: 'Victor y José Carrascosa', date: '2026-03-16', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 4', jornadaDate: '16/3/2026 - 5/4/2026' },
+                    
+                    // Jornada 5: 6/4/2026 - 26/4/2026
+                    { id: 'j5-1', team1: 'Victor y José Carrascosa', team2: 'Dani Muñoz y Chechu', date: '2026-04-06', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 5', jornadaDate: '6/4/2026 - 26/4/2026' },
+                    { id: 'j5-2', team1: 'Irene y Ernesto', team2: 'Adri Vergara y Sergio Morilla', date: '2026-04-06', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 5', jornadaDate: '6/4/2026 - 26/4/2026' },
+                    { id: 'j5-3', team1: 'Rubén y Jorge', team2: 'Carlos Rodriguez y Dani Minaya', date: '2026-04-06', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 5', jornadaDate: '6/4/2026 - 26/4/2026' },
+                    { id: 'j5-4', team1: 'Javi y Juanan', team2: 'Dani Aguado y Natalia', date: '2026-04-06', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 5', jornadaDate: '6/4/2026 - 26/4/2026' },
+                    { id: 'j5-5', team1: 'Carlos Galeano y Miguel', team2: 'Carlos Vergara y Sebas', date: '2026-04-06', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 5', jornadaDate: '6/4/2026 - 26/4/2026' },
+                    
+                    // Jornada 6: 27/4/2026 - 17/5/2026
+                    { id: 'j6-1', team1: 'Dani Aguado y Natalia', team2: 'Carlos Galeano y Miguel', date: '2026-04-27', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 6', jornadaDate: '27/4/2026 - 17/5/2026' },
+                    { id: 'j6-2', team1: 'Carlos Rodriguez y Dani Minaya', team2: 'José Mora y Sergio Santurde', date: '2026-04-27', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 6', jornadaDate: '27/4/2026 - 17/5/2026' },
+                    { id: 'j6-3', team1: 'Carlos Vergara y Sebas', team2: 'Adri Vergara y Sergio Morilla', date: '2026-04-27', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 6', jornadaDate: '27/4/2026 - 17/5/2026' },
+                    { id: 'j6-4', team1: 'Victor y José Carrascosa', team2: 'Javi y Juanan', date: '2026-04-27', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 6', jornadaDate: '27/4/2026 - 17/5/2026' },
+                    { id: 'j6-5', team1: 'Dani Muñoz y Chechu', team2: 'Rubén y Jorge', date: '2026-04-27', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 6', jornadaDate: '27/4/2026 - 17/5/2026' },
+                    
+                    // Jornada 7: 18/5/2026 - 7/6/2026
+                    { id: 'j7-1', team1: 'Carlos Rodriguez y Dani Minaya', team2: 'Adri Vergara y Sergio Morilla', date: '2026-05-18', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 7', jornadaDate: '18/5/2026 - 7/6/2026' },
+                    { id: 'j7-2', team1: 'Victor y José Carrascosa', team2: 'Dani Aguado y Natalia', date: '2026-05-18', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 7', jornadaDate: '18/5/2026 - 7/6/2026' },
+                    { id: 'j7-3', team1: 'Dani Muñoz y Chechu', team2: 'Carlos Galeano y Miguel', date: '2026-05-18', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 7', jornadaDate: '18/5/2026 - 7/6/2026' },
+                    { id: 'j7-4', team1: 'José Mora y Sergio Santurde', team2: 'Irene y Ernesto', date: '2026-05-18', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 7', jornadaDate: '18/5/2026 - 7/6/2026' },
+                    { id: 'j7-5', team1: 'Rubén y Jorge', team2: 'Carlos Vergara y Sebas', date: '2026-05-18', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 7', jornadaDate: '18/5/2026 - 7/6/2026' },
+                    
+                    // Jornada 8: 8/6/2026 - 28/6/2026
+                    { id: 'j8-1', team1: 'Javi y Juanan', team2: 'Rubén y Jorge', date: '2026-06-08', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 8', jornadaDate: '8/6/2026 - 28/6/2026' },
+                    { id: 'j8-2', team1: 'Carlos Vergara y Sebas', team2: 'Irene y Ernesto', date: '2026-06-08', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 8', jornadaDate: '8/6/2026 - 28/6/2026' },
+                    { id: 'j8-3', team1: 'José Mora y Sergio Santurde', team2: 'Dani Muñoz y Chechu', date: '2026-06-08', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 8', jornadaDate: '8/6/2026 - 28/6/2026' },
+                    { id: 'j8-4', team1: 'Carlos Galeano y Miguel', team2: 'Victor y José Carrascosa', date: '2026-06-08', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 8', jornadaDate: '8/6/2026 - 28/6/2026' },
+                    { id: 'j8-5', team1: 'Dani Aguado y Natalia', team2: 'Adri Vergara y Sergio Morilla', date: '2026-06-08', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 8', jornadaDate: '8/6/2026 - 28/6/2026' },
+                    
+                    // Jornada 9: 29/6/2026 - 26/7/2026
+                    { id: 'j9-1', team1: 'Rubén y Jorge', team2: 'Irene y Ernesto', date: '2026-06-29', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 9', jornadaDate: '29/6/2026 - 26/7/2026' },
+                    { id: 'j9-2', team1: 'Dani Muñoz y Chechu', team2: 'Javi y Juanan', date: '2026-06-29', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 9', jornadaDate: '29/6/2026 - 26/7/2026' },
+                    { id: 'j9-3', team1: 'Victor y José Carrascosa', team2: 'Carlos Vergara y Sebas', date: '2026-06-29', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 9', jornadaDate: '29/6/2026 - 26/7/2026' },
+                    { id: 'j9-4', team1: 'José Mora y Sergio Santurde', team2: 'Adri Vergara y Sergio Morilla', date: '2026-06-29', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 9', jornadaDate: '29/6/2026 - 26/7/2026' },
+                    { id: 'j9-5', team1: 'Carlos Rodriguez y Dani Minaya', team2: 'Carlos Galeano y Miguel', date: '2026-06-29', status: 'scheduled', score1: '', score2: '', games1: '', games2: '', jornada: 'Jornada 9', jornadaDate: '29/6/2026 - 26/7/2026' },
+                ];
+            });
+
+            const [teams] = useState(initialTeams);
+
+            // Función para parsear CSV
+            const parseCSV = (text) => {
+                const lines = text.split('\n').filter(line => line.trim());
+                return lines.slice(1).map(line => {
+                    // Manejar campos entre comillas
+                    const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                    return matches ? matches.map(field => field.replace(/^"|"$/g, '').trim()) : [];
+                }).filter(row => row.length > 0 && row[0]);
+            };
+
+            // Cargar datos desde Google Sheets
+            const loadFromGoogleSheets = async () => {
+                try {
+                    setSyncMessage('Sincronizando con Google Sheets...');
+                    
+                    // Cargar calendario
+                    const calendarioResponse = await fetch(CALENDARIO_URL);
+                    const calendarioText = await calendarioResponse.text();
+                    const calendarioData = parseCSV(calendarioText);
+                    
+                    // Procesar partidos del calendario
+                    const processedMatches = [];
+                    let currentJornada = '';
+                    let currentJornadaDate = '';
+                    
+                    calendarioData.forEach((row, index) => {
+                        // Detectar si es una línea de jornada (contiene "Jornada" en la primera columna)
+                        if (row[0] && row[0].includes('Jornada')) {
+                            currentJornada = row[0].trim();
+                            // La fecha de la jornada está en la segunda columna (verde)
+                            currentJornadaDate = row[1] ? row[1].trim() : '';
+                            return;
+                        }
+                        
+                        // Saltar líneas vacías o que no tienen parejas
+                        if (!row[1] || row[1].trim() === '' || row[1].toLowerCase().includes('descansa')) {
+                            return;
+                        }
+                        
+                        // Formato: Posición, Pareja 1, Pareja 2, [Resultado opcional]
+                        const pareja1 = row[1] ? row[1].trim() : '';
+                        const pareja2 = row[2] ? row[2].trim() : '';
+                        
+                        // Saltar si alguna pareja es DESCANSA
+                        if (pareja1.toLowerCase() === 'descansa' || pareja2.toLowerCase() === 'descansa') {
+                            return;
+                        }
+                        
+                        // Buscar resultado en las siguientes columnas
+                        let resultado = '';
+                        let sets1 = '';
+                        let sets2 = '';
+                        let status = 'scheduled';
+                        
+                        // Buscar resultado en columnas 3-5
+                        for (let i = 3; i < row.length && i < 6; i++) {
+                            if (row[i] && row[i].includes('-') && !row[i].includes('/')) {
+                                resultado = row[i].trim();
+                                break;
+                            }
+                        }
+                        
+                        if (resultado && resultado.includes('-')) {
+                            const scores = resultado.split('-');
+                            sets1 = scores[0]?.trim() || '';
+                            sets2 = scores[1]?.trim() || '';
+                            status = 'completed';
+                        }
+                        
+                        if (pareja1 && pareja2) {
+                            processedMatches.push({
+                                id: `sheet-${index}-${Date.now()}`,
+                                team1: pareja1,
+                                team2: pareja2,
+                                date: currentJornadaDate,
+                                status: status,
+                                score1: sets1,
+                                score2: sets2,
+                                games1: '',
+                                games2: '',
+                                jornada: currentJornada,
+                                jornadaDate: currentJornadaDate
+                            });
+                        }
+                    });
+                    
+                    setMatches(processedMatches);
+                    localStorage.setItem('padelMatches', JSON.stringify(processedMatches));
+                    
+                    setSyncMessage('✅ Sincronizado correctamente');
+                    setTimeout(() => setSyncMessage(''), 3000);
+                    setLoading(false);
+                } catch (error) {
+                    console.error('Error cargando datos de Google Sheets:', error);
+                    setSyncMessage('❌ Error al sincronizar. Usando datos locales.');
+                    setTimeout(() => setSyncMessage(''), 5000);
+                    setLoading(false);
+                }
+            };
+
+            // Cargar datos al iniciar
+            useEffect(() => {
+                // Solo intentar cargar de Google Sheets si no hay datos guardados
+                const saved = localStorage.getItem('padelMatches');
+                if (!saved || JSON.parse(saved).length === 0) {
+                    loadFromGoogleSheets();
+                } else {
+                    setLoading(false);
+                }
+            }, []);
+
+            // Guardar cambios en localStorage
+            useEffect(() => {
+                if (!loading) {
+                    localStorage.setItem('padelMatches', JSON.stringify(matches));
+                }
+            }, [matches, loading]);
+
+            const handleAdminClick = () => {
+                setShowPasswordPrompt(true);
+            };
+
+            const handlePasswordSubmit = async (e) => {
+                e.preventDefault();
+                const inputHash = await sha256(passwordInput);
+                
+                if (inputHash === ADMIN_HASH) {
+                    sessionToken = generateToken();
+                    setIsAdmin(true);
+                    setView('admin');
+                    setShowPasswordPrompt(false);
+                    setPasswordInput('');
+                } else {
+                    alert('Contraseña incorrecta');
+                    setPasswordInput('');
+                }
+            };
+
+            const calculateStandings = () => {
+                const savedPenalties = JSON.parse(localStorage.getItem('padelPenalties') || '{}');
+                const standings = {};
+                
+                teams.forEach(team => {
+                    standings[team] = {
+                        played: 0,
+                        won: 0,
+                        draw: 0,
+                        lost: 0,
+                        setsFor: 0,
+                        setsAgainst: 0,
+                        gamesFor: 0,
+                        gamesAgainst: 0,
+                        penalties: savedPenalties[team] || 0,
+                        points: 0
+                    };
+                });
+
+                matches.filter(m => m.status === 'completed').forEach(match => {
+                    const team1 = match.team1;
+                    const team2 = match.team2;
+                    
+                    // Validar que los equipos existen
+                    if (!standings[team1] || !standings[team2]) {
+                        console.warn('Equipo no encontrado en standings:', team1, team2);
+                        return;
+                    }
+                    
+                    const score1 = parseInt(match.score1) || 0;
+                    const score2 = parseInt(match.score2) || 0;
+                    
+                    // Calcular juegos desde los sets individuales
+                    const set1_t1 = parseInt(match.set1_team1) || 0;
+                    const set1_t2 = parseInt(match.set1_team2) || 0;
+                    const set2_t1 = parseInt(match.set2_team1) || 0;
+                    const set2_t2 = parseInt(match.set2_team2) || 0;
+                    const set3_t1 = parseInt(match.set3_team1) || 0;
+                    const set3_t2 = parseInt(match.set3_team2) || 0;
+                    
+                    const games1 = set1_t1 + set2_t1 + set3_t1;
+                    const games2 = set1_t2 + set2_t2 + set3_t2;
+
+                    standings[team1].played++;
+                    standings[team2].played++;
+                    standings[team1].setsFor += score1;
+                    standings[team1].setsAgainst += score2;
+                    standings[team2].setsFor += score2;
+                    standings[team2].setsAgainst += score1;
+                    standings[team1].gamesFor += games1;
+                    standings[team1].gamesAgainst += games2;
+                    standings[team2].gamesFor += games2;
+                    standings[team2].gamesAgainst += games1;
+
+                    if (score1 > score2) {
+                        standings[team1].won++;
+                        standings[team1].points += 3;
+                        standings[team2].lost++;
+                        standings[team2].points += 1;
+                    } else if (score2 > score1) {
+                        standings[team2].won++;
+                        standings[team2].points += 3;
+                        standings[team1].lost++;
+                        standings[team1].points += 1;
+                    } else {
+                        standings[team1].draw++;
+                        standings[team2].draw++;
+                        standings[team1].points += 2;
+                        standings[team2].points += 2;
+                    }
+                });
+
+                // Aplicar penalizaciones
+                Object.keys(standings).forEach(team => {
+                    standings[team].points -= standings[team].penalties;
+                });
+
+                return Object.entries(standings)
+                    .map(([team, stats]) => ({ team, ...stats }))
+                    .sort((a, b) => {
+                        if (b.points !== a.points) return b.points - a.points;
+                        const diffSetsA = a.setsFor - a.setsAgainst;
+                        const diffSetsB = b.setsFor - b.setsAgainst;
+                        if (diffSetsB !== diffSetsA) return diffSetsB - diffSetsA;
+                        const diffGamesA = a.gamesFor - a.gamesAgainst;
+                        const diffGamesB = b.gamesFor - b.gamesAgainst;
+                        if (diffGamesB !== diffGamesA) return diffGamesB - diffGamesA;
+                        return b.gamesFor - a.gamesFor;
+                    });
+            };
+
+            const addMatch = (matchData) => {
+                if (!sessionToken) {
+                    console.error('Acceso no autorizado');
+                    return;
+                }
+                setMatches([...matches, { ...matchData, id: Date.now() }]);
+            };
+
+            const updateMatch = (id, updates) => {
+                if (!sessionToken) {
+                    console.error('Acceso no autorizado');
+                    return;
+                }
+                setMatches(matches.map(m => m.id === id ? { ...m, ...updates } : m));
+            };
+
+            const deleteMatch = (id) => {
+                if (!sessionToken) {
+                    console.error('Acceso no autorizado');
+                    return;
+                }
+                setMatches(matches.filter(m => m.id !== id));
+            };
+
+            return (
+                <div className="app-background">
+                    <div className="app-container">
+                        <header className="header">
+                            <div className="header-content">
+                                <h1 className="logo">TORNEO DE PÁDEL</h1>
+                                <nav className="nav">
+                                    <button 
+                                        className={`nav-btn ${view === 'rules' ? 'active' : ''}`}
+                                        onClick={() => setView('rules')}
+                                    >
+                                        Normativa
+                                    </button>
+                                    <button 
+                                        className={`nav-btn ${view === 'calendar' ? 'active' : ''}`}
+                                        onClick={() => setView('calendar')}
+                                    >
+                                        Calendario
+                                    </button>
+                                    <button 
+                                        className={`nav-btn ${view === 'standings' ? 'active' : ''}`}
+                                        onClick={() => setView('standings')}
+                                    >
+                                        Clasificación
+                                    </button>
+                                    {!isAdmin && (
+                                        <button 
+                                            className="nav-btn admin-btn"
+                                            onClick={handleAdminClick}
+                                        >
+                                            Admin
+                                        </button>
+                                    )}
+                                    {isAdmin && (
+                                        <>
+                                            <button 
+                                                className={`nav-btn ${view === 'admin' ? 'active' : ''}`}
+                                                onClick={() => setView('admin')}
+                                            >
+                                                Panel Admin
+                                            </button>
+                                            <button 
+                                                className="nav-btn"
+                                                onClick={loadFromGoogleSheets}
+                                                style={{borderColor: 'var(--secondary)'}}
+                                            >
+                                                🔄 Sincronizar
+                                            </button>
+                                            <button 
+                                                className="nav-btn"
+                                                onClick={() => {
+                                                    if (window.confirm('¿Resetear a datos iniciales? Se perderán los cambios locales.')) {
+                                                        localStorage.removeItem('padelMatches');
+                                                        window.location.reload();
+                                                    }
+                                                }}
+                                                style={{borderColor: 'var(--loss)'}}
+                                            >
+                                                🔄 Reset
+                                            </button>
+                                            <button 
+                                                className="nav-btn admin-btn"
+                                                onClick={() => {
+                                                    sessionToken = null;
+                                                    setIsAdmin(false);
+                                                    setView('rules');
+                                                }}
+                                            >
+                                                Salir Admin
+                                            </button>
+                                        </>
+                                    )}
+                                </nav>
+                                {syncMessage && (
+                                    <div style={{
+                                        marginTop: '1rem',
+                                        padding: '0.75rem',
+                                        background: 'rgba(0, 255, 135, 0.1)',
+                                        border: '1px solid rgba(0, 255, 135, 0.3)',
+                                        borderRadius: '8px',
+                                        fontSize: '0.9rem',
+                                        textAlign: 'center'
+                                    }}>
+                                        {syncMessage}
+                                    </div>
+                                )}
+                            </div>
+                        </header>
+
+                        <main className="main-content">
+                            {loading ? (
+                                <div style={{textAlign: 'center', padding: '4rem'}}>
+                                    <div style={{
+                                        fontSize: '3rem',
+                                        marginBottom: '1rem',
+                                        animation: 'spin 1s linear infinite'
+                                    }}>⏳</div>
+                                    <div style={{fontSize: '1.2rem', color: 'var(--text-muted)'}}>
+                                        Cargando datos del torneo...
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    {view === 'rules' && (
+                                        <RulesView />
+                                    )}
+                                    {view === 'calendar' && (
+                                        <CalendarView matches={matches} />
+                                    )}
+                                    {view === 'standings' && (
+                                        <StandingsView 
+                                            standings={calculateStandings()} 
+                                            setView={setView}
+                                            setSelectedTeam={setSelectedTeam}
+                                        />
+                                    )}
+                                    {view === 'teamDetail' && selectedTeam && (
+                                        <TeamDetailView 
+                                            team={selectedTeam}
+                                            matches={matches}
+                                            standings={calculateStandings()}
+                                            onBack={() => {
+                                                setSelectedTeam(null);
+                                                setView('standings');
+                                            }}
+                                        />
+                                    )}
+                                    {view === 'admin' && isAdmin && (
+                                        <AdminView 
+                                            matches={matches}
+                                            teams={teams}
+                                            onAddMatch={addMatch}
+                                            onUpdateMatch={updateMatch}
+                                            onDeleteMatch={deleteMatch}
+                                        />
+                                    )}
+                                </>
+                            )}
+                        </main>
+                    </div>
+
+                    {showPasswordPrompt && (
+                        <div className="password-prompt">
+                            <div className="password-box">
+                                <h2 className="password-title">Acceso Administrador</h2>
+                                <form onSubmit={handlePasswordSubmit}>
+                                    <div className="form-group">
+                                        <input
+                                            type="password"
+                                            className="form-input"
+                                            placeholder="Contraseña"
+                                            value={passwordInput}
+                                            onChange={(e) => setPasswordInput(e.target.value)}
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <button type="submit" className="btn btn-primary" style={{width: '100%'}}>
+                                        Entrar
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-danger" 
+                                        style={{width: '100%', marginTop: '0.5rem'}}
+                                        onClick={() => {
+                                            setShowPasswordPrompt(false);
+                                            setPasswordInput('');
+                                        }}
+                                    >
+                                        Cancelar
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function CalendarView({ matches }) {
+            const [selectedJornada, setSelectedJornada] = useState('');
+            
+            // Organizar partidos por jornada
+            const matchesByJornada = {};
+            matches.forEach(match => {
+                const jornada = match.jornada || 'Sin jornada';
+                if (!matchesByJornada[jornada]) {
+                    matchesByJornada[jornada] = [];
+                }
+                matchesByJornada[jornada].push(match);
+            });
+            
+            // Obtener lista de jornadas ordenadas
+            const jornadas = Object.keys(matchesByJornada).sort((a, b) => {
+                if (a === 'Sin jornada') return 1;
+                if (b === 'Sin jornada') return -1;
+                const numA = parseInt(a.replace('Jornada ', ''));
+                const numB = parseInt(b.replace('Jornada ', ''));
+                return numA - numB;
+            });
+            
+            // Filtrar partidos según jornada seleccionada
+            const filteredMatches = selectedJornada 
+                ? matchesByJornada[selectedJornada] || []
+                : [];
+            
+            const completedMatches = filteredMatches
+                .filter(m => m.status === 'completed')
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            const upcomingMatches = filteredMatches
+                .filter(m => m.status === 'scheduled')
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            return (
+                <>
+                    <div style={{marginBottom: '2rem'}}>
+                        <h2 className="section-title">Calendario</h2>
+                        
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'flex-end',
+                            gap: '1.5rem',
+                            marginBottom: '2rem',
+                            flexWrap: 'wrap'
+                        }}>
+                            <div style={{width: '350px'}}>
+                                <label style={{
+                                    display: 'block',
+                                    marginBottom: '0.5rem',
+                                    fontWeight: 600,
+                                    color: 'var(--primary)',
+                                    fontSize: '1rem'
+                                }}>
+                                    Seleccionar Jornada
+                                </label>
+                                <select
+                                    value={selectedJornada}
+                                    onChange={(e) => setSelectedJornada(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '1rem',
+                                        background: 'var(--dark-card)',
+                                        border: '2px solid rgba(0, 255, 135, 0.3)',
+                                        borderRadius: '8px',
+                                        color: selectedJornada ? 'var(--text)' : 'var(--text-muted)',
+                                        fontFamily: 'Outfit, sans-serif',
+                                        fontSize: '1rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    <option value="">-- Selecciona una jornada --</option>
+                                    {jornadas.map(jornada => (
+                                        <option key={jornada} value={jornada}>
+                                            {jornada}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            {selectedJornada && matchesByJornada[selectedJornada] && matchesByJornada[selectedJornada][0]?.jornadaDate && (
+                                <div style={{
+                                    padding: '1rem 1.5rem',
+                                    background: 'rgba(0, 255, 135, 0.1)',
+                                    border: '1px solid rgba(0, 255, 135, 0.3)',
+                                    borderRadius: '8px',
+                                    color: 'var(--primary)',
+                                    fontWeight: 600,
+                                    fontSize: '1rem',
+                                    whiteSpace: 'nowrap',
+                                    height: '54px',
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}>
+                                    📅 {matchesByJornada[selectedJornada][0].jornadaDate}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {selectedJornada && matchesByJornada[selectedJornada] && (
+                        <>
+                            {(() => {
+                                // Lista de todas las parejas del torneo
+                                const allTeams = [
+                                    "Adri Vergara y Sergio Morilla",
+                                    "Carlos Galeano y Miguel",
+                                    "Carlos Rodriguez y Dani Minaya",
+                                    "Carlos Vergara y Sebas",
+                                    "Dani Aguado y Natalia",
+                                    "Dani Muñoz y Chechu",
+                                    "Irene y Ernesto",
+                                    "Javi y Juanan",
+                                    "José Mora y Sergio Santurde",
+                                    "Rubén y Jorge",
+                                    "Victor y José Carrascosa"
+                                ];
+                                
+                                // Encontrar equipos que juegan en esta jornada
+                                const playingTeams = new Set();
+                                matchesByJornada[selectedJornada].forEach(match => {
+                                    playingTeams.add(match.team1);
+                                    playingTeams.add(match.team2);
+                                });
+                                
+                                // Encontrar el equipo que descansa
+                                const restingTeam = allTeams.find(team => !playingTeams.has(team));
+                                
+                                return restingTeam ? (
+                                    <div style={{
+                                        background: 'rgba(255, 193, 7, 0.1)',
+                                        padding: '0.75rem 1rem',
+                                        borderRadius: '8px',
+                                        marginBottom: '2rem',
+                                        border: '1px solid rgba(255, 193, 7, 0.3)',
+                                        color: 'var(--text)',
+                                        fontSize: '0.95rem'
+                                    }}>
+                                        ☕ <strong style={{color: '#ffc107'}}>Descansa:</strong> <span style={{marginLeft: '0.5rem'}}>{restingTeam}</span>
+                                    </div>
+                                ) : null;
+                            })()}
+                            
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: '2rem',
+                                alignItems: 'start'
+                            }}>
+                                <section>
+                                    <h3 style={{
+                                        fontSize: '1.5rem',
+                                        marginBottom: '1.5rem',
+                                        color: 'var(--primary)',
+                                        fontFamily: 'Bebas Neue, sans-serif',
+                                        letterSpacing: '1px'
+                                    }}>
+                                        ✅ Resultados
+                                    </h3>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                        {completedMatches.length === 0 ? (
+                                            <p style={{color: 'var(--text-muted)'}}>No hay resultados disponibles</p>
+                                        ) : (
+                                            completedMatches.map(match => (
+                                                <MatchCard key={match.id} match={match} />
+                                            ))
+                                        )}
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h3 style={{
+                                        fontSize: '1.5rem',
+                                        marginBottom: '1.5rem',
+                                        color: 'var(--secondary)',
+                                        fontFamily: 'Bebas Neue, sans-serif',
+                                        letterSpacing: '1px'
+                                    }}>
+                                        📅 Próximos Partidos
+                                    </h3>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                        {upcomingMatches.length === 0 ? (
+                                            <p style={{color: 'var(--text-muted)'}}>No hay partidos programados</p>
+                                        ) : (
+                                            upcomingMatches.map(match => (
+                                                <MatchCard key={match.id} match={match} />
+                                            ))
+                                        )}
+                                    </div>
+                                </section>
+                            </div>
+                        </>
+                    )}
+                    
+                    {!selectedJornada && (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '4rem 2rem',
+                            color: 'var(--text-muted)'
+                        }}>
+                            <div style={{fontSize: '3rem', marginBottom: '1rem'}}>📅</div>
+                            <div style={{fontSize: '1.2rem'}}>Selecciona una jornada para ver los partidos</div>
+                        </div>
+                    )}
+                </>
+            );
+        }
+
+        function MatchCard({ match }) {
+            const formatDate = (dateStr) => {
+                if (!dateStr) return 'Fecha por confirmar';
+                if (dateStr.includes('-')) {
+                    return dateStr;
+                }
+                try {
+                    const date = new Date(dateStr);
+                    return date.toLocaleDateString('es-ES', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric'
+                    });
+                } catch (e) {
+                    return dateStr;
+                }
+            };
+
+            const score1 = parseInt(match.score1) || 0;
+            const score2 = parseInt(match.score2) || 0;
+            const team1Winner = match.status === 'completed' && score1 > score2;
+            const team2Winner = match.status === 'completed' && score2 > score1;
+
+            return (
+                <div className="match-card">
+                    <div className="match-header">
+                        <div>
+                            {match.jornada && (
+                                <div style={{
+                                    fontSize: '0.75rem',
+                                    color: 'var(--primary)',
+                                    fontWeight: 700,
+                                    marginBottom: '0.25rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px'
+                                }}>
+                                    {match.jornada}
+                                </div>
+                            )}
+                            <span className="match-date">{formatDate(match.date)}</span>
+                        </div>
+                        <span className={`match-status status-${match.status}`}>
+                            {match.status === 'scheduled' ? 'Programado' : 'Finalizado'}
+                        </span>
+                    </div>
+                    
+                    <div className="match-body">
+                        <div className="teams-vs-section">
+                            {(() => {
+                                const team1Parts = match.team1.split(' y ');
+                                const team2Parts = match.team2.split(' y ');
+                                return (
+                                    <>
+                                        <div className={`team-line-split ${team1Winner ? 'winner' : ''}`}>
+                                            <span className="player-left">{team1Parts[0]}</span>
+                                            <span className="separator">/</span>
+                                            <span className="player-right">{team1Parts[1]}</span>
+                                        </div>
+                                        <div className="vs-center">VS</div>
+                                        <div className={`team-line-split ${team2Winner ? 'winner' : ''}`}>
+                                            <span className="player-left">{team2Parts[0]}</span>
+                                            <span className="separator">/</span>
+                                            <span className="player-right">{team2Parts[1]}</span>
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
+                        
+                        {match.status === 'completed' && (
+                            <div className="sets-section">
+                                <div className="sets-grid">
+                                    <div className="set-col">
+                                        <div className="set-label">S1</div>
+                                        <div className="set-value">{match.set1_team1 || '-'}</div>
+                                        <div className="set-value">{match.set1_team2 || '-'}</div>
+                                    </div>
+                                    <div className="set-col">
+                                        <div className="set-label">S2</div>
+                                        <div className="set-value">{match.set2_team1 || '-'}</div>
+                                        <div className="set-value">{match.set2_team2 || '-'}</div>
+                                    </div>
+                                    <div className="set-col">
+                                        <div className="set-label">S3</div>
+                                        <div className="set-value">{match.set3_team1 || '-'}</div>
+                                        <div className="set-value">{match.set3_team2 || '-'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function StandingsView({ standings, setView, setSelectedTeam }) {
+            return (
+                <section>
+                    <h2 className="section-title">Clasificación</h2>
+                    <div className="standings-table">
+                        <div className="table-header">
+                            <span>POS</span>
+                            <span>PAREJAS</span>
+                            <span>P.JUG</span>
+                            <span>P.GAN</span>
+                            <span>P.EMP</span>
+                            <span>P.PER</span>
+                            <span>SET G.</span>
+                            <span>SET P.</span>
+                            <span>JUE. G</span>
+                            <span>JUE. P</span>
+                            <span>DIF. SETS</span>
+                            <span>DIF. JUEGOS</span>
+                            <span>PENALIZACIÓN</span>
+                            <span>PUNTOS</span>
+                        </div>
+                        {standings.map((team, index) => (
+                            <div key={team.team} className="table-row">
+                                <span className="rank">{index + 1}</span>
+                                <span 
+                                    className="team-name"
+                                    onClick={() => {
+                                        console.log('Click en pareja:', team.team);
+                                        setSelectedTeam(team.team);
+                                        setView('teamDetail');
+                                        console.log('Vista cambiada a teamDetail');
+                                    }}
+                                    style={{
+                                        cursor: 'pointer', 
+                                        transition: 'color 0.3s ease',
+                                        userSelect: 'none'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = 'var(--primary)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = '';
+                                    }}
+                                >
+                                    {team.team.replace(/ y /g, ' / ')}
+                                </span>
+                                <span className="stat">{team.played}</span>
+                                <span className="stat">{team.won}</span>
+                                <span className="stat">{team.draw}</span>
+                                <span className="stat">{team.lost}</span>
+                                <span className="stat">{team.setsFor}</span>
+                                <span className="stat">{team.setsAgainst}</span>
+                                <span className="stat">{team.gamesFor}</span>
+                                <span className="stat">{team.gamesAgainst}</span>
+                                <span className="stat" style={{color: team.setsFor - team.setsAgainst >= 0 ? 'var(--win)' : 'var(--loss)'}}>
+                                    {team.setsFor - team.setsAgainst >= 0 ? '+' : ''}{team.setsFor - team.setsAgainst}
+                                </span>
+                                <span className="stat" style={{color: team.gamesFor - team.gamesAgainst >= 0 ? 'var(--win)' : 'var(--loss)'}}>
+                                    {team.gamesFor - team.gamesAgainst >= 0 ? '+' : ''}{team.gamesFor - team.gamesAgainst}
+                                </span>
+                                <span className="stat" style={{color: team.penalties > 0 ? 'var(--loss)' : 'var(--text-muted)'}}>
+                                    {team.penalties}
+                                </span>
+                                <span className="points">{team.points}</span>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            );
+        }
+
+        function RulesView() {
+            return (
+                <div className="rules-container">
+                    <h2 className="section-title">Vergara's Cup 2026</h2>
+                    
+                    <div className="rules-section" style={{background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 152, 0, 0.1) 100%)'}}>
+                        <h3 className="rules-section-title" style={{color: '#ffc107'}}>Torneo de Liga 2026</h3>
+                        <ol className="rules-list">
+                            <li>Liga compuesta de 11 parejas en donde todos juegan contra todos (10 partidos + 1 jornada de descanso)</li>
+                            <li>Una vez completada la liga regular se realizará una fase de playoff's (cuartos de final, semifinal y finales)</li>
+                            <li>El clasificado en 1ª posición entrará directamente en semifinales (sin jugar cuartos de final)</li>
+                            <li>Los clasificados desde el 2º al 7º jugarán partido de cuartos de final en formato sorteo (2º/7º, 3º/6º y 4º/5º)</li>
+                            <li>El emparejamiento en semifinales quedará establecido en función de las posiciones en la fase regular.</li>
+                            <li>Las parejas en las posiciones 8ª, 9ª, 10ª y 11ª jugarán un playoff (semifinal y final) para determinar las posiciones finales del torneo 2026.</li>
+                            <li>De la misma forma también se jugará playoff con semifinal y final entre las posiciones 8ºvs11º y 9ºvs10º</li>
+                        </ol>
+                    </div>
+
+                    <div className="rules-section">
+                        <h3 className="rules-section-title">Normas Generales</h3>
+                        <ol className="rules-list">
+                            <li>Es obligatorio e <span className="rules-highlight">IMPEPINIBLE</span> que se abra el grupo de WhatsApp para esa jornada durante el PRIMER LUNES, aunque se juegue más tarde evidentemente</li>
+                            <li>El grupo de WhatsApp lo <span className="rules-highlight">DEBE ABRIR</span> la pareja que sale como LOCAL</li>
+                            <li>Cada jornada se puede jugar durante <span className="rules-highlight">LAS TRES SEMANAS ESTIPULADAS</span> (una semana más tarde de ese periodo el partido se dará por perdido)</li>
+                            <li>La jornada 9 está compuesta por 4 semanas por periodo vacacional</li>
+                            <li>Tras la jornada 9 existe un periodo vacacional de 1 mes (en este periodo se pueden <span className="rules-highlight">RECUPERAR</span> partidos o <span className="rules-highlight">ADELANTAR</span> por vacaciones en septiembre)</li>
+                            <li>La fase final (playoff's) son jornadas de 2 semanas</li>
+                            <li>Se puede adelantar una jornada y jugar dos partidos en el periodo de una jornada siempre y cuando haya acuerdo entre parejas.</li>
+                            <li>Cada tres semanas se abre una nueva jornada y se deberá haber jugado el partido que tocaba.</li>
+                            <li><span className="rules-highlight">CADA VEZ QUE SE PROGRAME UN PARTIDO</span> se debe poner por el grupo</li>
+                            <li>Los participantes del partido (las dos parejas) deben consensuar cada jornada para quedar.</li>
+                            <li>Si un miembro (o dos) de la pareja tienen un periodo vacacional, tienen que intentar jugar el partido correspondiente con anterioridad (si sois de esas personas que tienen 3 semanas de vacaciones)</li>
+                            <li>Si un miembro se lesiona de gravedad se puede buscar alguien para sustituir (nivel SIMILAR) o abandonar (es la peor opción)</li>
+                        </ol>
+                    </div>
+
+                    <div className="rules-section">
+                        <h3 className="rules-section-title">Reglas de Juego</h3>
+                        <ol className="rules-list">
+                            <li>Los partidos se juegan al ganador de 2 sets.</li>
+                            <li>Cada set se debe ganar por dos juegos de ventaja llegando a 6/7 como máximo.</li>
+                            <li>En caso de llegar a 6-6, el desempate se hace mediante un tie-break.</li>
+                            <li>El tie-break se gana llegando a 7 puntos con una diferencia mínima de 2.</li>
+                            <li>Si dos o más parejas quedan empatadas a puntos se desempatará mediante la diferencia de sets.</li>
+                            <li>En relación al punto anterior, si <span className="rules-highlight">TAMBIÉN</span> se empata a sets la diferencia sería por los juegos ganados/perdidos.</li>
+                            <li>En relación al punto anterior, si <span className="rules-highlight">TAMBIÉN</span> se empata a juegos la diferencia sería por el partido/s jugados entre los implicados.</li>
+                            <li>Si no da tiempo a acabar un partido el partido finalizará victoria para el equipo que más sets haya ganado.</li>
+                            <li>Si no da tiempo a acabar un partido el partido finalizará empate si ambos equipos empataban a un set en ese momento por 3 o menos juegos de diferencia.</li>
+                            <li>Cada victoria contabiliza con TRES puntos.</li>
+                            <li>Cada empate contabiliza con DOS puntos para cada pareja (partido inacabado empatados a un set)</li>
+                            <li>Cada derrota contabiliza con UN punto.</li>
+                            <li>No jugar un partido <span className="rules-highlight">RESTA UN</span> punto.</li>
+                            <li>En caso de no jugar un partido de dicha jornada sin previo aviso (y fecha de juego) se restará DOS puntos a cada pareja.</li>
+                            <li>Atendiendo al punto anterior, si NO se ha jugado solo por una pareja, solo se le restará a esa pareja sumando 1 punto a la restante.</li>
+                            <li>Pistas alquiladas 1:30 MIN jugar un tercer SET a SUPERTIEBREAK (10 puntos con diferencia de 2)</li>
+                            <li>Pistas alquiladas 2 HORAS jugar a tres sets NORMALES (salvo que al acabar el 2º se intuya que NO da tiempo a un set normal y se juegue SUPERTIEBREAK)</li>
+                            <li>A partir del tercer DEUCE en el mismo juego se realiza PUNTO DE ORO (no existen ventajas)</li>
+                        </ol>
+                        
+                        <div className="rules-warning">
+                            <strong>⚠️ IMPORTANTE E INDISPENSABLE</strong><br/>
+                            Las normas se pueden adaptar en cada partido pero que quede hablado ANTES de empezar a jugar el mismo
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function TeamDetailView({ team, matches, standings, onBack }) {
+            const chartRef = React.useRef(null);
+            const chartInstance = React.useRef(null);
+
+            // Filtrar partidos de esta pareja
+            const teamMatches = matches.filter(m => 
+                m.team1 === team || m.team2 === team
+            ).sort((a, b) => {
+                const jornadaA = parseInt(a.jornada?.replace('Jornada ', '') || 0);
+                const jornadaB = parseInt(b.jornada?.replace('Jornada ', '') || 0);
+                return jornadaA - jornadaB;
+            });
+
+            const completedMatches = teamMatches.filter(m => m.status === 'completed');
+            const upcomingMatches = teamMatches.filter(m => m.status === 'scheduled');
+
+            // Calcular estadísticas
+            const stats = {
+                played: 0,
+                won: 0,
+                draw: 0,
+                lost: 0,
+                setsFor: 0,
+                setsAgainst: 0,
+                gamesFor: 0,
+                gamesAgainst: 0,
+                points: 0,
+                currentStreak: 0,
+                streakType: 'none'
+            };
+
+            let streakCount = 0;
+            let lastResult = null;
+
+            completedMatches.forEach(match => {
+                stats.played++;
+                const isTeam1 = match.team1 === team;
+                const score1 = parseInt(match.score1) || 0;
+                const score2 = parseInt(match.score2) || 0;
+                
+                const teamScore = isTeam1 ? score1 : score2;
+                const opponentScore = isTeam1 ? score2 : score1;
+
+                stats.setsFor += teamScore;
+                stats.setsAgainst += opponentScore;
+
+                // Calcular juegos
+                if (match.set1_team1) {
+                    const games1T1 = parseInt(match.set1_team1) || 0;
+                    const games1T2 = parseInt(match.set1_team2) || 0;
+                    const games2T1 = parseInt(match.set2_team1) || 0;
+                    const games2T2 = parseInt(match.set2_team2) || 0;
+                    const games3T1 = parseInt(match.set3_team1) || 0;
+                    const games3T2 = parseInt(match.set3_team2) || 0;
+
+                    if (isTeam1) {
+                        stats.gamesFor += games1T1 + games2T1 + games3T1;
+                        stats.gamesAgainst += games1T2 + games2T2 + games3T2;
+                    } else {
+                        stats.gamesFor += games1T2 + games2T2 + games3T2;
+                        stats.gamesAgainst += games1T1 + games2T1 + games3T1;
+                    }
+                }
+
+                let result;
+                if (teamScore > opponentScore) {
+                    stats.won++;
+                    stats.points += 3;
+                    result = 'W';
+                } else if (teamScore < opponentScore) {
+                    stats.lost++;
+                    stats.points += 1;
+                    result = 'L';
+                } else {
+                    stats.draw++;
+                    stats.points += 2;
+                    result = 'D';
+                }
+
+                // Calcular racha
+                if (result === lastResult) {
+                    streakCount++;
+                } else {
+                    streakCount = 1;
+                    lastResult = result;
+                }
+            });
+
+            stats.currentStreak = streakCount;
+            stats.streakType = lastResult;
+
+            // Encontrar posición
+            const teamStanding = standings.find(s => s.team === team);
+            const position = standings.findIndex(s => s.team === team) + 1;
+
+            // Datos para la gráfica
+            const chartData = {
+                labels: ['J0'],
+                points: [0]
+            };
+
+            let cumulativePoints = 0;
+            completedMatches.forEach(match => {
+                const isTeam1 = match.team1 === team;
+                const score1 = parseInt(match.score1) || 0;
+                const score2 = parseInt(match.score2) || 0;
+                const teamScore = isTeam1 ? score1 : score2;
+                const opponentScore = isTeam1 ? score2 : score1;
+
+                if (teamScore > opponentScore) cumulativePoints += 3;
+                else if (teamScore < opponentScore) cumulativePoints += 1;
+                else cumulativePoints += 2;
+
+                chartData.labels.push(match.jornada?.replace('Jornada ', 'J') || '');
+                chartData.points.push(cumulativePoints);
+            });
+
+            // Crear/actualizar gráfica
+            React.useEffect(() => {
+                if (chartRef.current && chartData.points.length > 1) {
+                    // Destruir gráfica anterior si existe
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+
+                    const ctx = chartRef.current.getContext('2d');
+                    chartInstance.current = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: chartData.labels,
+                            datasets: [{
+                                label: 'Puntos Acumulados',
+                                data: chartData.points,
+                                borderColor: '#00FF87',
+                                backgroundColor: 'rgba(0, 255, 135, 0.1)',
+                                borderWidth: 3,
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                                pointBackgroundColor: '#00FF87',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                                    titleColor: '#00FF87',
+                                    bodyColor: '#fff',
+                                    borderColor: '#00FF87',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    displayColors: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)'
+                                    },
+                                    ticks: {
+                                        color: '#9ca3af',
+                                        font: {
+                                            family: 'Outfit'
+                                        }
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.05)'
+                                    },
+                                    ticks: {
+                                        color: '#9ca3af',
+                                        font: {
+                                            family: 'Outfit'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Cleanup
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [team]);
+
+            const getStreakEmoji = () => {
+                if (stats.currentStreak === 0) return '';
+                if (stats.streakType === 'W' && stats.currentStreak >= 3) return '🔥';
+                if (stats.streakType === 'W' && stats.currentStreak >= 2) return '⚡';
+                if (stats.streakType === 'L' && stats.currentStreak >= 2) return '❄️';
+                return '';
+            };
+
+            const getStreakText = () => {
+                if (stats.currentStreak === 0 || !stats.streakType) return 'Sin racha';
+                const type = stats.streakType === 'W' ? 'victorias' : stats.streakType === 'L' ? 'derrotas' : 'empates';
+                return `${stats.currentStreak} ${type} consecutivas`;
+            };
+
+            return (
+                <div>
+                    <button 
+                        onClick={onBack}
+                        style={{
+                            marginBottom: '2rem',
+                            padding: '0.75rem 1.5rem',
+                            background: 'var(--dark-card)',
+                            border: '2px solid rgba(0, 255, 135, 0.3)',
+                            borderRadius: '8px',
+                            color: 'var(--text)',
+                            cursor: 'pointer',
+                            fontFamily: 'Outfit',
+                            fontWeight: 600,
+                            transition: 'all 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.borderColor = 'var(--primary)';
+                            e.target.style.background = 'rgba(0, 255, 135, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.borderColor = 'rgba(0, 255, 135, 0.3)';
+                            e.target.style.background = 'var(--dark-card)';
+                        }}
+                    >
+                        ← Volver a Clasificación
+                    </button>
+
+                    <div style={{
+                        background: 'linear-gradient(135deg, rgba(0, 255, 135, 0.15) 0%, rgba(0, 102, 255, 0.1) 100%)',
+                        padding: '2rem',
+                        borderRadius: '16px',
+                        marginBottom: '2rem',
+                        border: '2px solid rgba(0, 255, 135, 0.2)'
+                    }}>
+                        <h1 style={{
+                            fontFamily: 'Bebas Neue',
+                            fontSize: '3rem',
+                            marginBottom: '1rem',
+                            color: 'var(--primary)',
+                            letterSpacing: '2px'
+                        }}>
+                            {team.replace(/ y /g, ' / ')}
+                        </h1>
+                        <div style={{display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'center'}}>
+                            <div style={{fontSize: '1.2rem'}}>
+                                <strong style={{color: 'var(--primary)'}}>Posición:</strong> {position}º
+                            </div>
+                            <div style={{fontSize: '1.2rem'}}>
+                                <strong style={{color: 'var(--primary)'}}>Puntos:</strong> {stats.points}
+                            </div>
+                            <div style={{fontSize: '1.2rem'}}>
+                                <strong style={{color: 'var(--primary)'}}>Racha:</strong> {getStreakEmoji()} {getStreakText()}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: '1rem',
+                        marginBottom: '2rem'
+                    }}>
+                        <div className="stat-card">
+                            <div className="stat-label">Partidos Jugados</div>
+                            <div className="stat-value">{stats.played}</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-label">Victorias</div>
+                            <div className="stat-value" style={{color: 'var(--win)'}}>{stats.won}</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-label">Empates</div>
+                            <div className="stat-value" style={{color: 'var(--draw)'}}>{stats.draw}</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-label">Derrotas</div>
+                            <div className="stat-value" style={{color: 'var(--loss)'}}>{stats.lost}</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-label">Sets Ganados</div>
+                            <div className="stat-value">{stats.setsFor}</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-label">Sets Perdidos</div>
+                            <div className="stat-value">{stats.setsAgainst}</div>
+                        </div>
+                    </div>
+
+                    {chartData.points.length > 1 && (
+                        <div style={{
+                            background: 'var(--dark-card)',
+                            padding: '2rem',
+                            borderRadius: '16px',
+                            marginBottom: '2rem',
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}>
+                            <h3 style={{
+                                fontFamily: 'Bebas Neue',
+                                fontSize: '1.8rem',
+                                marginBottom: '1.5rem',
+                                color: 'var(--primary)',
+                                letterSpacing: '1px'
+                            }}>
+                                📈 Evolución de Puntos
+                            </h3>
+                            <div style={{height: '300px', position: 'relative'}}>
+                                <canvas ref={chartRef}></canvas>
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '3rem'}}>
+                        <div>
+                            <h3 style={{
+                                fontFamily: 'Bebas Neue',
+                                fontSize: '1.8rem',
+                                marginBottom: '1.5rem',
+                                color: 'var(--win)',
+                                letterSpacing: '1px'
+                            }}>
+                                ✅ Partidos Jugados ({completedMatches.length})
+                            </h3>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                {completedMatches.length === 0 ? (
+                                    <p style={{color: 'var(--text-muted)'}}>No hay partidos jugados todavía</p>
+                                ) : (
+                                    completedMatches.map(match => {
+                                        const isTeam1 = match.team1 === team;
+                                        const opponent = isTeam1 ? match.team2 : match.team1;
+                                        const score1 = parseInt(match.score1) || 0;
+                                        const score2 = parseInt(match.score2) || 0;
+                                        const teamScore = isTeam1 ? score1 : score2;
+                                        const opponentScore = isTeam1 ? score2 : score1;
+                                        const result = teamScore > opponentScore ? 'Victoria' : teamScore < opponentScore ? 'Derrota' : 'Empate';
+                                        const resultColor = teamScore > opponentScore ? 'var(--win)' : teamScore < opponentScore ? 'var(--loss)' : 'var(--draw)';
+
+                                        return (
+                                            <div key={match.id} className="match-card" style={{background: 'var(--dark-card)'}}>
+                                                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem'}}>
+                                                    <strong style={{color: 'var(--primary)'}}>{match.jornada}</strong>
+                                                    <strong style={{color: resultColor}}>{result} {teamScore}-{opponentScore}</strong>
+                                                </div>
+                                                <div style={{color: 'var(--text-muted)', fontSize: '0.9rem'}}>
+                                                    vs {opponent.replace(/ y /g, ' / ')}
+                                                </div>
+                                                {match.set1_team1 && (
+                                                    <div style={{marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)'}}>
+                                                        Sets: {match.set1_team1}-{match.set1_team2}, {match.set2_team1}-{match.set2_team2}
+                                                        {match.set3_team1 && match.set3_team1 !== '' && `, ${match.set3_team1}-${match.set3_team2}`}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 style={{
+                                fontFamily: 'Bebas Neue',
+                                fontSize: '1.8rem',
+                                marginBottom: '1.5rem',
+                                color: 'var(--secondary)',
+                                letterSpacing: '1px'
+                            }}>
+                                📅 Próximos Partidos ({upcomingMatches.length})
+                            </h3>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                {upcomingMatches.length === 0 ? (
+                                    <p style={{color: 'var(--text-muted)'}}>No hay partidos programados</p>
+                                ) : (
+                                    upcomingMatches.map(match => {
+                                        const isTeam1 = match.team1 === team;
+                                        const opponent = isTeam1 ? match.team2 : match.team1;
+
+                                        return (
+                                            <div key={match.id} className="match-card" style={{background: 'var(--dark-card)'}}>
+                                                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem'}}>
+                                                    <strong style={{color: 'var(--primary)'}}>{match.jornada}</strong>
+                                                    <span className="match-status status-scheduled" style={{fontSize: '0.75rem'}}>Programado</span>
+                                                </div>
+                                                <div style={{color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.25rem'}}>
+                                                    vs {opponent.replace(/ y /g, ' / ')}
+                                                </div>
+                                                {match.jornadaDate && (
+                                                    <div style={{fontSize: '0.8rem', color: 'var(--text-muted)'}}>
+                                                        📅 {match.jornadaDate}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function AdminView({ matches, teams, onAddMatch, onUpdateMatch, onDeleteMatch }) {
+            const [formData, setFormData] = useState({
+                team1: teams[0],
+                team2: teams[1],
+                date: '',
+                status: 'scheduled',
+                score1: '',
+                score2: '',
+                games1: '',
+                games2: '',
+                jornada: 'Jornada 1',
+                set1_team1: '',
+                set1_team2: '',
+                set2_team1: '',
+                set2_team2: '',
+                set3_team1: '',
+                set3_team2: ''
+            });
+
+            const [editingId, setEditingId] = useState(null);
+            const [filterJornada, setFilterJornada] = useState('all');
+            const [penalties, setPenalties] = useState(() => {
+                const saved = localStorage.getItem('padelPenalties');
+                return saved ? JSON.parse(saved) : {};
+            });
+
+            const updatePenalty = (team, value) => {
+                const newPenalties = { ...penalties, [team]: parseInt(value) || 0 };
+                setPenalties(newPenalties);
+                localStorage.setItem('padelPenalties', JSON.stringify(newPenalties));
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!formData.date) {
+                    alert('Por favor selecciona una fecha');
+                    return;
+                }
+                if (formData.team1 === formData.team2) {
+                    alert('Los equipos deben ser diferentes');
+                    return;
+                }
+
+                // Calcular automáticamente score y games desde los sets
+                const set1_t1 = parseInt(formData.set1_team1) || 0;
+                const set1_t2 = parseInt(formData.set1_team2) || 0;
+                const set2_t1 = parseInt(formData.set2_team1) || 0;
+                const set2_t2 = parseInt(formData.set2_team2) || 0;
+                const set3_t1 = parseInt(formData.set3_team1) || 0;
+                const set3_t2 = parseInt(formData.set3_team2) || 0;
+
+                // Calcular sets ganados
+                let score1 = 0;
+                let score2 = 0;
+                if (set1_t1 > set1_t2) score1++; else if (set1_t2 > set1_t1) score2++;
+                if (set2_t1 > set2_t2) score1++; else if (set2_t2 > set2_t1) score2++;
+                if (set3_t1 > set3_t2) score1++; else if (set3_t2 > set3_t1) score2++;
+
+                // Calcular juegos totales
+                const games1 = set1_t1 + set2_t1 + set3_t1;
+                const games2 = set1_t2 + set2_t2 + set3_t2;
+
+                // Actualizar formData con los cálculos
+                const updatedFormData = {
+                    ...formData,
+                    score1: score1.toString(),
+                    score2: score2.toString(),
+                    games1: games1.toString(),
+                    games2: games2.toString()
+                };
+
+                if (editingId) {
+                    onUpdateMatch(editingId, updatedFormData);
+                    setEditingId(null);
+                } else {
+                    onAddMatch(updatedFormData);
+                }
+
+                setFormData({
+                    team1: teams[0],
+                    team2: teams[1],
+                    date: '',
+                    status: 'scheduled',
+                    score1: '',
+                    score2: '',
+                    games1: '',
+                    games2: '',
+                    jornada: 'Jornada 1',
+                    set1_team1: '',
+                    set1_team2: '',
+                    set2_team1: '',
+                    set2_team2: '',
+                    set3_team1: '',
+                    set3_team2: ''
+                });
+            };
+
+            const handleEdit = (match) => {
+                setFormData(match);
+                setEditingId(match.id);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            return (
+                <section>
+                    <h2 className="section-title">Panel de Administración</h2>
+                    
+                    <div className="admin-panel">
+                        <h3 style={{marginBottom: '1.5rem', fontSize: '1.5rem', color: 'var(--primary)'}}>
+                            {editingId ? 'Editar Partido' : 'Crear Nuevo Partido'}
+                        </h3>
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">Equipo 1</label>
+                                    <select 
+                                        className="form-select"
+                                        value={formData.team1}
+                                        onChange={(e) => setFormData({...formData, team1: e.target.value})}
+                                    >
+                                        {teams.map(team => (
+                                            <option key={team} value={team}>{team}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Equipo 2</label>
+                                    <select 
+                                        className="form-select"
+                                        value={formData.team2}
+                                        onChange={(e) => setFormData({...formData, team2: e.target.value})}
+                                    >
+                                        {teams.map(team => (
+                                            <option key={team} value={team}>{team}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Fecha y Hora</label>
+                                <input 
+                                    type="date"
+                                    className="form-input"
+                                    value={formData.date}
+                                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Jornada</label>
+                                <select 
+                                    className="form-select"
+                                    value={formData.jornada}
+                                    onChange={(e) => setFormData({...formData, jornada: e.target.value})}
+                                >
+                                    {[...Array(11)].map((_, i) => (
+                                        <option key={i} value={`Jornada ${i + 1}`}>Jornada {i + 1}</option>
+                                    ))}
+                                    <option value="Playoffs">Playoffs</option>
+                                    <option value="Semifinal">Semifinal</option>
+                                    <option value="Final">Final</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Estado</label>
+                                <select 
+                                    className="form-select"
+                                    value={formData.status}
+                                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                >
+                                    <option value="scheduled">Programado</option>
+                                    <option value="completed">Finalizado</option>
+                                </select>
+                            </div>
+
+                            {formData.status === 'completed' && (
+                                <>
+                                    <div style={{marginTop: '1.5rem', padding: '1rem', background: 'rgba(0, 255, 135, 0.05)', borderRadius: '8px'}}>
+                                        <h4 style={{color: 'var(--primary)', marginBottom: '1rem', fontSize: '1rem'}}>Resultados Detallados por Set</h4>
+                                        
+                                        <div style={{marginBottom: '1rem'}}>
+                                            <label className="form-label">Set 1</label>
+                                            <div className="form-row">
+                                                <div className="form-group" style={{marginBottom: 0}}>
+                                                    <input 
+                                                        type="number"
+                                                        min="0"
+                                                        max="7"
+                                                        className="form-input"
+                                                        value={formData.set1_team1}
+                                                        onChange={(e) => setFormData({...formData, set1_team1: e.target.value})}
+                                                        placeholder="Equipo 1"
+                                                    />
+                                                </div>
+                                                <div className="form-group" style={{marginBottom: 0}}>
+                                                    <input 
+                                                        type="number"
+                                                        min="0"
+                                                        max="7"
+                                                        className="form-input"
+                                                        value={formData.set1_team2}
+                                                        onChange={(e) => setFormData({...formData, set1_team2: e.target.value})}
+                                                        placeholder="Equipo 2"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{marginBottom: '1rem'}}>
+                                            <label className="form-label">Set 2</label>
+                                            <div className="form-row">
+                                                <div className="form-group" style={{marginBottom: 0}}>
+                                                    <input 
+                                                        type="number"
+                                                        min="0"
+                                                        max="7"
+                                                        className="form-input"
+                                                        value={formData.set2_team1}
+                                                        onChange={(e) => setFormData({...formData, set2_team1: e.target.value})}
+                                                        placeholder="Equipo 1"
+                                                    />
+                                                </div>
+                                                <div className="form-group" style={{marginBottom: 0}}>
+                                                    <input 
+                                                        type="number"
+                                                        min="0"
+                                                        max="7"
+                                                        className="form-input"
+                                                        value={formData.set2_team2}
+                                                        onChange={(e) => setFormData({...formData, set2_team2: e.target.value})}
+                                                        placeholder="Equipo 2"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{marginBottom: '1rem'}}>
+                                            <label className="form-label">Set 3 (opcional)</label>
+                                            <div className="form-row">
+                                                <div className="form-group" style={{marginBottom: 0}}>
+                                                    <input 
+                                                        type="number"
+                                                        min="0"
+                                                        max="7"
+                                                        className="form-input"
+                                                        value={formData.set3_team1}
+                                                        onChange={(e) => setFormData({...formData, set3_team1: e.target.value})}
+                                                        placeholder="Equipo 1"
+                                                    />
+                                                </div>
+                                                <div className="form-group" style={{marginBottom: 0}}>
+                                                    <input 
+                                                        type="number"
+                                                        min="0"
+                                                        max="7"
+                                                        className="form-input"
+                                                        value={formData.set3_team2}
+                                                        onChange={(e) => setFormData({...formData, set3_team2: e.target.value})}
+                                                        placeholder="Equipo 2"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            <div style={{display: 'flex', gap: '1rem', marginTop: '1.5rem'}}>
+                                <button type="submit" className="btn btn-primary">
+                                    {editingId ? 'Actualizar Partido' : 'Crear Partido'}
+                                </button>
+                                {editingId && (
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-danger"
+                                        onClick={() => {
+                                            setEditingId(null);
+                                            setFormData({
+                                                team1: teams[0],
+                                                team2: teams[1],
+                                                date: '',
+                                                status: 'scheduled',
+                                                score1: '',
+                                                score2: '',
+                                                games1: '',
+                                                games2: '',
+                                                jornada: 'Jornada 1',
+                                                set1_team1: '',
+                                                set1_team2: '',
+                                                set2_team1: '',
+                                                set2_team2: '',
+                                                set3_team1: '',
+                                                set3_team2: ''
+                                            });
+                                        }}
+                                    >
+                                        Cancelar Edición
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+                    </div>
+
+                    <div style={{marginTop: '3rem'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem'}}>
+                            <h3 style={{fontSize: '1.5rem', color: 'var(--primary)', margin: 0}}>
+                                Gestionar Partidos ({matches.length})
+                            </h3>
+                            
+                            <div style={{width: '300px'}}>
+                                <label style={{
+                                    display: 'block',
+                                    marginBottom: '0.5rem',
+                                    fontWeight: 600,
+                                    color: 'var(--primary)',
+                                    fontSize: '0.9rem'
+                                }}>
+                                    Filtrar por Jornada
+                                </label>
+                                <select
+                                    value={filterJornada}
+                                    onChange={(e) => setFilterJornada(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        background: 'var(--dark-card)',
+                                        border: '2px solid rgba(0, 255, 135, 0.3)',
+                                        borderRadius: '8px',
+                                        color: 'var(--text)',
+                                        fontFamily: 'Outfit, sans-serif',
+                                        fontSize: '0.9rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="all">📅 Todas las Jornadas ({matches.length})</option>
+                                    {Array.from(new Set(matches.map(m => m.jornada).filter(Boolean)))
+                                        .sort((a, b) => {
+                                            const numA = parseInt(a.replace('Jornada ', ''));
+                                            const numB = parseInt(b.replace('Jornada ', ''));
+                                            return numA - numB;
+                                        })
+                                        .map(jornada => {
+                                            const count = matches.filter(m => m.jornada === jornada).length;
+                                            return (
+                                                <option key={jornada} value={jornada}>
+                                                    {jornada} ({count})
+                                                </option>
+                                            );
+                                        })
+                                    }
+                                    <option value="scheduled">⏰ Solo Programados ({matches.filter(m => m.status === 'scheduled').length})</option>
+                                    <option value="completed">✅ Solo Finalizados ({matches.filter(m => m.status === 'completed').length})</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="matches-list">
+                            {(() => {
+                                // Filtrar partidos según selección
+                                let filteredMatches = matches;
+                                
+                                if (filterJornada === 'scheduled') {
+                                    filteredMatches = matches.filter(m => m.status === 'scheduled');
+                                } else if (filterJornada === 'completed') {
+                                    filteredMatches = matches.filter(m => m.status === 'completed');
+                                } else if (filterJornada !== 'all') {
+                                    filteredMatches = matches.filter(m => m.jornada === filterJornada);
+                                }
+
+                                if (filteredMatches.length === 0) {
+                                    return <p style={{color: 'var(--text-muted)'}}>No hay partidos en esta categoría</p>;
+                                }
+
+                                return filteredMatches.map(match => (
+                                    <div key={match.id} className="admin-match-card">
+                                        <div className="match-info">
+                                            <div style={{fontWeight: 600, marginBottom: '0.5rem'}}>
+                                                {match.team1} vs {match.team2}
+                                            </div>
+                                            <div style={{color: 'var(--text-muted)', fontSize: '0.9rem'}}>
+                                                {new Date(match.date).toLocaleDateString('es-ES')} - {match.status === 'scheduled' ? 'Programado' : `Finalizado ${match.score1}-${match.score2} (${match.games1 || 0}-${match.games2 || 0} juegos)`}
+                                            </div>
+                                        </div>
+                                        <div className="match-actions">
+                                            <button 
+                                                className="btn btn-primary btn-sm"
+                                                onClick={() => handleEdit(match)}
+                                            >
+                                                Editar
+                                            </button>
+                                            <button 
+                                                className="btn btn-danger btn-sm"
+                                                onClick={() => {
+                                                    if (window.confirm('¿Eliminar este partido?')) {
+                                                        onDeleteMatch(match.id);
+                                                    }
+                                                }}
+                                            >
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+                                ));
+                            })()}
+                        </div>
+                    </div>
+
+                    <div style={{marginTop: '3rem'}}>
+                        <h3 style={{marginBottom: '1.5rem', fontSize: '1.5rem', color: 'var(--primary)'}}>
+                            Gestionar Penalizaciones
+                        </h3>
+                        <div className="admin-panel">
+                            <div style={{display: 'grid', gap: '1rem'}}>
+                                {teams.map(team => (
+                                    <div key={team} style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                                        <span style={{flex: 1, fontWeight: 600}}>{team}</span>
+                                        <input 
+                                            type="number"
+                                            min="0"
+                                            className="form-input"
+                                            style={{maxWidth: '150px'}}
+                                            value={penalties[team] || 0}
+                                            onChange={(e) => updatePenalty(team, e.target.value)}
+                                            placeholder="Puntos"
+                                        />
+                                        <span style={{color: 'var(--text-muted)', fontSize: '0.9rem'}}>puntos de penalización</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
