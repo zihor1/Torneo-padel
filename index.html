@@ -1476,6 +1476,7 @@
         }
 
         function CalendarView({ matches }) {
+            console.log('CalendarView - Total partidos:', matches.length);
             const [selectedJornada, setSelectedJornada] = useState('');
             
             // Organizar partidos por jornada
@@ -1487,6 +1488,8 @@
                 }
                 matchesByJornada[jornada].push(match);
             });
+            
+            console.log('Jornadas disponibles:', Object.keys(matchesByJornada));
             
             // Obtener lista de jornadas ordenadas
             const jornadas = Object.keys(matchesByJornada).sort((a, b) => {
@@ -1689,19 +1692,16 @@
         function MatchCard({ match }) {
             const formatDate = (dateStr) => {
                 if (!dateStr) return 'Fecha por confirmar';
-                if (dateStr.includes('-')) {
-                    return dateStr;
-                }
                 try {
                     const date = new Date(dateStr);
+                    if (isNaN(date.getTime())) return 'Fecha por confirmar';
                     return date.toLocaleDateString('es-ES', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric'
+                        day: 'numeric',
+                        month: 'numeric',
+                        year: 'numeric'
                     });
                 } catch (e) {
-                    return dateStr;
+                    return 'Fecha por confirmar';
                 }
             };
 
