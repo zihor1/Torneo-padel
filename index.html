@@ -937,6 +937,27 @@
             const [view, setView] = useState('rules');
             const [isAdmin, setIsAdmin] = useState(false);
             const [selectedTeam, setSelectedTeam] = useState(null);
+            
+            // Funciones de seguridad dentro del componente
+            const sha256 = async (message) => {
+                try {
+                    const msgBuffer = new TextEncoder().encode(message);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                } catch (error) {
+                    console.error('Error en SHA-256:', error);
+                    return null;
+                }
+            };
+            
+            const ADMIN_HASH = "d97c0fc29ac6ac54b2e8fcc3239c8c57633edde5a77ce4819828189e6f837bcc";
+            const sessionTokenRef = React.useRef(null);
+            
+            const generateToken = () => {
+                return Array.from(crypto.getRandomValues(new Uint8Array(32)))
+                    .map(b => b.toString(16).padStart(2, '0')).join('');
+            };
             const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
             const [passwordInput, setPasswordInput] = useState('');
             const [loading, setLoading] = useState(true);
@@ -1142,15 +1163,20 @@
 
             const handlePasswordSubmit = async (e) => {
                 e.preventDefault();
+                console.log('Intentando login...');
                 const inputHash = await sha256(passwordInput);
+                console.log('Hash generado:', inputHash);
+                console.log('Hash esperado:', ADMIN_HASH);
                 
                 if (inputHash === ADMIN_HASH) {
-                    sessionToken = generateToken();
+                    sessionTokenRef.current = generateToken();
+                    console.log('Login exitoso');
                     setIsAdmin(true);
                     setView('admin');
                     setShowPasswordPrompt(false);
                     setPasswordInput('');
                 } else {
+                    console.log('Login fallido');
                     alert('Contraseña incorrecta');
                     setPasswordInput('');
                 }
@@ -1248,7 +1274,7 @@
             };
 
             const addMatch = (matchData) => {
-                if (!sessionToken) {
+                if (!sessionTokenRef.current) {
                     console.error('Acceso no autorizado');
                     return;
                 }
@@ -1256,7 +1282,7 @@
             };
 
             const updateMatch = (id, updates) => {
-                if (!sessionToken) {
+                if (!sessionTokenRef.current) {
                     console.error('Acceso no autorizado');
                     return;
                 }
@@ -1264,7 +1290,7 @@
             };
 
             const deleteMatch = (id) => {
-                if (!sessionToken) {
+                if (!sessionTokenRef.current) {
                     console.error('Acceso no autorizado');
                     return;
                 }
@@ -1334,7 +1360,7 @@
                                             <button 
                                                 className="nav-btn admin-btn"
                                                 onClick={() => {
-                                                    sessionToken = null;
+                                                    sessionTokenRef.current = null;
                                                     setIsAdmin(false);
                                                     setView('rules');
                                                 }}
